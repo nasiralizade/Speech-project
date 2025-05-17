@@ -5,11 +5,9 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support, con
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-#import torch.serialization
 import numpy.core.multiarray
 
 # Allowlist NumPy globals for safe loading
-#torch.serialization.add_safe_globals([numpy.core.multiarray._reconstruct, numpy.ndarray])
 
 
 def evaluate_model(model, test_loader, device='cuda'):
