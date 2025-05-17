@@ -4,7 +4,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from model import AudioClassifier, get_baseline_model
 import os
-import torch.serialization
+#import torch.serialization
 import numpy.core.multiarray
 import numpy
 import warnings
@@ -13,7 +13,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torch")
 
 # Allowlist NumPy globals for safe loading
-torch.serialization.add_safe_globals([numpy.core.multiarray._reconstruct, numpy.ndarray])
+#torch.serialization.add_safe_globals([numpy.core.multiarray._reconstruct, numpy.ndarray])
 
 
 def train_model(model, train_loader, val_loader, num_epochs=10, lr=2e-5, device='cuda', model_name='model', patience=9):
@@ -69,7 +69,7 @@ def train_model(model, train_loader, val_loader, num_epochs=10, lr=2e-5, device=
 
 if __name__ == '__main__':
     # Load preprocessed data
-    data = torch.load('data/preprocessed/preprocessed.pt',weights_only=False)
+    data = torch.load('data/preprocessed/preprocessed.pt')
     X_train, y_train = data['X_train'], data['y_train']
     X_val, y_val = data['X_val'], data['y_val']
 
@@ -86,8 +86,10 @@ if __name__ == '__main__':
 
     # Train fine-tuned model
     os.makedirs('models', exist_ok=True)
-    num_epochs = 100
-    train_model(model, train_loader, val_loader, num_epochs=num_epochs, lr=2e-5, device=device, model_name='model')
+    num_epochs = 500
+    train_model(model, train_loader, val_loader, num_epochs=num_epochs, lr=2e-5, device=device, model_name='model', patience=500)
 
     # Train baseline model
-    train_model(baseline_model, train_loader, val_loader, num_epochs=num_epochs, lr=2e-5, device=device, model_name='baseline_model')
+    print("Start training baseline_model\n")
+    train_model(baseline_model, train_loader, val_loader, num_epochs=num_epochs, lr=2e-5, device=device, model_name='baseline_model',patience=500)
+
