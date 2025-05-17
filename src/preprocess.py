@@ -94,6 +94,5 @@ def spec_augment(mfcc, freq_mask_param=5, time_mask_param=10):
 
     return augmented
 
-
 if __name__ == '__main__':
     preprocess_data('/Users/nasiralizade/Project/Speech/data/ESC-50/audio', 'data/preprocessed')
