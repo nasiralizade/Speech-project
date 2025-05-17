@@ -63,13 +63,24 @@ def preprocess_data(data_dir, output_dir, sr=16000, n_mfcc=40, max_len=100):
     # Prepare dataset splits
     X = np.array(padded_features)
     y = np.array(labels)
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
-    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42, stratify=y_temp)
+
+    X_train = torch.tensor(X_train, dtype=torch.float32)
+    y_train = torch.tensor(y_train, dtype=torch.long)
+    X_val = torch.tensor(X_val, dtype=torch.float32)
+    y_val = torch.tensor(y_val, dtype=torch.long)
+    X_test = torch.tensor(X_test, dtype=torch.float32)
+    y_test = torch.tensor(y_test, dtype=torch.long)
 
     # Save preprocessed data
     os.makedirs(output_dir, exist_ok=True)
-    torch.save({'X_train': X_train, 'y_train': y_train, 'X_val': X_val, 'y_val': y_val,
-                'X_test': X_test, 'y_test': y_test}, os.path.join(output_dir, 'preprocessed.pt'))
+    data_to_save = {
+        'X_train': X_train, 'y_train': y_train,
+        'X_val': X_val, 'y_val': y_val,
+        'X_test': X_test, 'y_test': y_test
+    }
+    torch.save(data_to_save, os.path.join(output_dir, 'preprocessed.pt'))
 
     return X_train, y_train, X_val, y_val, X_test, y_test
 
