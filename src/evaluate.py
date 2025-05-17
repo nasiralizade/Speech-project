@@ -24,14 +24,16 @@ def evaluate_model(model, test_loader, device='cuda'):
             y_pred.extend(preds.cpu().numpy())
 
     acc = accuracy_score(y_true, y_pred)
-    prec, rec, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='weighted')
+    prec, rec, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='weighted', zero_division=0)
     return acc, prec, rec, f1, y_true, y_pred
 
 
-def plot_confusion_matrix(y_true, y_pred, num_classes=50, name='confusion_matrix'):
+def plot_confusion_matrix(y_true, y_pred, class_labels=50, name='confusion_matrix'):
     cm = confusion_matrix(y_true, y_pred)
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=False, cmap='Blues')
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=class_labels,
+                yticklabels=class_labels)
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.title('Confusion Matrix')

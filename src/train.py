@@ -7,15 +7,21 @@ import os
 import torch.serialization
 import numpy.core.multiarray
 import numpy
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="torch")
 
 # Allowlist NumPy globals for safe loading
 torch.serialization.add_safe_globals([numpy.core.multiarray._reconstruct, numpy.ndarray])
 
 
-def train_model(model, train_loader, val_loader, num_epochs=10, lr=2e-5, device='cuda', model_name='model'):
+def train_model(model, train_loader, val_loader, num_epochs=10, lr=2e-5, device='cuda', model_name='model', patience=9):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=lr)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
+
     best_val_acc = 0
+    epochs_no_improve = 0
+
     for epoch in range(num_epochs):
         model.train()
         train_loss, train_correct = 0, 0
@@ -29,6 +35,8 @@ def train_model(model, train_loader, val_loader, num_epochs=10, lr=2e-5, device=
             train_loss += loss.item()
             train_correct += (outputs.argmax(dim=1) == y).sum().item()
 
+        scheduler.step()
+
         model.eval()
         val_correct = 0
         with torch.no_grad():
@@ -39,14 +47,22 @@ def train_model(model, train_loader, val_loader, num_epochs=10, lr=2e-5, device=
 
         train_acc = train_correct / len(train_loader.dataset)
         val_acc = val_correct / len(val_loader.dataset)
-        print(
-            f'Epoch {epoch + 1}: Train Loss={train_loss / len(train_loader):.4f}, Train Acc={train_acc:.4f}, Val Acc={val_acc:.4f}')
 
-        # Save best model
+        print(f'Epoch {epoch + 1}/{num_epochs}: Train Loss={train_loss / len(train_loader):.4f}, '
+              f'Train Acc={train_acc:.4f}, Val Acc={val_acc:.4f}, LR={scheduler.get_last_lr()[0]:.6f}')
+
         if val_acc > best_val_acc:
             best_val_acc = val_acc
+            epochs_no_improve = 0
             torch.save(model.state_dict(), f'models/best_{model_name}.pt')
-            print(f'Best Model: Acc={best_val_acc:.4f}')
+            print(f'Best Model Updated: Acc={best_val_acc:.4f}')
+            print(f'⎺'*50)
+        else:
+            epochs_no_improve += 1
+            print(f'Early Stopping Counter: {epochs_no_improve}/{patience}')
+            if epochs_no_improve >= patience:
+                print("Early stopping triggered.")
+                break
 
 
 if __name__ == '__main__':

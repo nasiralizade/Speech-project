@@ -32,34 +32,36 @@ def augment_audio(audio, sr=16000):
     # Time stretch
     audio = librosa.effects.time_stretch(audio, rate=np.random.uniform(0.8, 1.2))
     return audio
+def normalize_features(features):
+    mean = np.mean(features, axis=0)
+    std = np.std(features, axis=0) + 1e-6  # prevent division by zero
+    return (features - mean) / std
 
 
-def preprocess_data(data_dir, output_dir, sr=16000, n_mfcc=40):
+def preprocess_data(data_dir, output_dir, sr=16000, n_mfcc=40, max_len=100):
     audio_files, labels = load_esc50(data_dir)
     features = []
-    for audio_path in audio_files:
-        # Extract MFCC
-        mfcc = extract_mfcc(audio_path, sr, n_mfcc)
-        # Augment audio and extract MFCC again
-        audio, _ = librosa.load(audio_path, sr=sr)
-        aug_audio = augment_audio(audio, sr)
-        aug_mfcc = librosa.feature.mfcc(y=aug_audio, sr=sr, n_mfcc=n_mfcc).T
-        features.append((mfcc, aug_mfcc))
 
-    # Pad/truncate MFCCs to fixed length (e.g., 100 time steps)
-    max_len = 100
+    for audio_path in audio_files:
+        # Extract MFCC and normalize
+        mfcc = extract_mfcc(audio_path, sr, n_mfcc)
+        mfcc = normalize_features(mfcc)
+
+        # Apply SpecAugment
+        spec_augmented_mfcc = spec_augment(mfcc)
+        features.append((mfcc, spec_augmented_mfcc))
+
+    # Pad/truncate MFCCs to fixed length
     padded_features = []
     for mfcc, aug_mfcc in features:
-        if mfcc.shape[0] > max_len:
-            mfcc = mfcc[:max_len]
-            aug_mfcc = aug_mfcc[:max_len]
-        else:
-            mfcc = np.pad(mfcc, ((0, max_len - mfcc.shape[0]), (0, 0)))
-            aug_mfcc = np.pad(aug_mfcc, ((0, max_len - aug_mfcc.shape[0]), (0, 0)))
-        padded_features.append(np.stack([mfcc, aug_mfcc]))  # Shape: (2, max_len, n_mfcc)
+        mfcc = mfcc[:max_len] if mfcc.shape[0] > max_len else np.pad(mfcc, ((0, max_len - mfcc.shape[0]), (0, 0)))
+        aug_mfcc = aug_mfcc[:max_len] if aug_mfcc.shape[0] > max_len else np.pad(aug_mfcc,
+                                                                                 ((0, max_len - aug_mfcc.shape[0]),
+                                                                                  (0, 0)))
+        padded_features.append(np.stack([mfcc, aug_mfcc]))
 
-    # Split dataset
-    X = np.array(padded_features)  # Shape: (n_samples, 2, max_len, n_mfcc)
+    # Prepare dataset splits
+    X = np.array(padded_features)
     y = np.array(labels)
     X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
     X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
@@ -68,7 +70,29 @@ def preprocess_data(data_dir, output_dir, sr=16000, n_mfcc=40):
     os.makedirs(output_dir, exist_ok=True)
     torch.save({'X_train': X_train, 'y_train': y_train, 'X_val': X_val, 'y_val': y_val,
                 'X_test': X_test, 'y_test': y_test}, os.path.join(output_dir, 'preprocessed.pt'))
+
     return X_train, y_train, X_val, y_val, X_test, y_test
+
+
+
+
+
+def spec_augment(mfcc, freq_mask_param=5, time_mask_param=10):
+    augmented = np.copy(mfcc)
+
+    # Frequency masking
+    num_freqs = augmented.shape[1]
+    f = np.random.randint(0, freq_mask_param)
+    f0 = np.random.randint(0, num_freqs - f)
+    augmented[:, f0:f0 + f] = 0
+
+    # Time masking
+    num_frames = augmented.shape[0]
+    t = np.random.randint(0, time_mask_param)
+    t0 = np.random.randint(0, num_frames - t)
+    augmented[t0:t0 + t, :] = 0
+
+    return augmented
 
 
 if __name__ == '__main__':
