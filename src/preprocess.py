@@ -70,6 +70,5 @@ def preprocess_data(data_dir, output_dir, sr=16000, n_mfcc=40):
                 'X_test': X_test, 'y_test': y_test}, os.path.join(output_dir, 'preprocessed.pt'))
     return X_train, y_train, X_val, y_val, X_test, y_test
 
-
 if __name__ == '__main__':
     preprocess_data('/Users/nasiralizade/Project/Speech/data/ESC-50/audio', 'data/preprocessed')
