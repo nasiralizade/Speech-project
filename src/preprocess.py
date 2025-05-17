@@ -85,7 +85,6 @@ def spec_augment(mfcc, freq_mask_param=5, time_mask_param=10):
     f = np.random.randint(0, freq_mask_param)
     f0 = np.random.randint(0, num_freqs - f)
     augmented[:, f0:f0 + f] = 0
-
     # Time masking
     num_frames = augmented.shape[0]
     t = np.random.randint(0, time_mask_param)
