@@ -71,12 +71,13 @@ def train_model(model, train_loader, val_loader, num_epochs=10, lr=2e-5, device=
                 X, y = X.to(device), y.to(device)
                 outputs = model(X)
                 val_correct += (outputs.argmax(dim=1) == y).sum().item()
+                val_loss = criterion(outputs, y)
 
         train_acc = train_correct / len(train_loader.dataset)
         val_acc = val_correct / len(val_loader.dataset)
         scheduler.step(val_acc)
         print(f'Epoch {epoch + 1}/{num_epochs}: Train Loss={train_loss / len(train_loader):.4f}, '
-              f'Train Acc={train_acc:.4f}, Val Acc={val_acc:.4f}, LR={optimizer.param_groups[0]["lr"]:.6f}')
+              f'Train Acc={train_acc:.4f},Val loss={val_loss:.4f}, Val Acc={val_acc:.4f}, LR={optimizer.param_groups[0]["lr"]:.6f}')
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
@@ -112,11 +113,11 @@ if __name__ == '__main__':
 
     # Train fine-tuned model
     os.makedirs('models', exist_ok=True)
-    num_epochs = 20
+    num_epochs = 50
     train_model(model, train_loader, val_loader, num_epochs=num_epochs, lr=2e-5, device=device, model_name='model',
-                patience=9)
+                patience=15)
 
     # Train baseline model
     print("Start training baseline_model\n")
     train_model(baseline_model, train_loader, val_loader, num_epochs=num_epochs, lr=1e-5, device=device,
-                model_name='baseline_model', patience=9)
+                model_name='baseline_model', patience=15)

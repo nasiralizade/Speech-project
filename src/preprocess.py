@@ -17,10 +17,11 @@ def load_esc50(data_dir, sr=16000):
     return audio_files, labels
 
 
-def extract_mfcc(audio_path, sr=16000, n_mfcc=40):
+def extract_log_mel(audio_path, sr=16000, n_mels=40):
     audio, _ = librosa.load(audio_path, sr=sr)
-    mfcc = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc)
-    return mfcc.T  # Shape: (time_steps, n_mfcc)
+    mel_spec = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=n_mels)
+    log_mel_spec = librosa.power_to_db(mel_spec, ref=np.max)
+    return log_mel_spec.T
 
 
 def augment_audio(audio, sr=16000):
@@ -44,7 +45,7 @@ def preprocess_data(data_dir, output_dir, sr=16000, n_mfcc=40, max_len=100):
 
     for audio_path in audio_files:
         # Extract MFCC and normalize
-        mfcc = extract_mfcc(audio_path, sr, n_mfcc)
+        mfcc = extract_log_mel(audio_path, sr, n_mfcc)
         mfcc = normalize_features(mfcc)
 
         # Apply SpecAugment
@@ -105,4 +106,4 @@ def spec_augment(mfcc, freq_mask_param=5, time_mask_param=10):
     return augmented
 
 if __name__ == '__main__':
-    preprocess_data('/Users/nasiralizade/Project/Speech/data/ESC-50/audio', 'data/preprocessed')
+    preprocess_data('data/ESC-50/audio', 'data/preprocessed')

@@ -48,9 +48,9 @@ class AudioClassifier(nn.Module):
 
 def get_baseline_model(num_classes=50, num_tokens=4):
     model = AudioClassifier(num_classes=num_classes, gpt2_model=None)
-    cnn_output_dim = 128 * 25 * 10
-    assert cnn_output_dim % num_tokens == 0
-    token_dim = cnn_output_dim // num_tokens
+    #cnn_output_dim = 128 * 25 * 10
+    #assert cnn_output_dim % num_tokens == 0
+    #token_dim = cnn_output_dim // num_tokens
 
-    model.cnn_projection = nn.Linear(128 * 10, 512)
+    #model.cnn_projection = nn.Linear(128 * 10, 512)
     return model
