@@ -4,11 +4,8 @@ from model import AudioClassifier, get_baseline_model
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
-import numpy.core.multiarray
-
-# Allowlist NumPy globals for safe loading
-
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="torch")
 
 def evaluate_model(model, test_loader, device='cuda'):
     model.eval()

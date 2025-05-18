@@ -2,7 +2,8 @@
 import torch
 import torch.nn as nn
 from transformers import GPT2Model, GPT2Config
-
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="torch")
 class AudioClassifier(nn.Module):
     def __init__(self, num_classes=50, gpt2_model='gpt2'):
         super().__init__()
