@@ -11,13 +11,42 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torch")
 
 
-# Allowlist NumPy globals for safe loading
-
-
 def train_model(model, train_loader, val_loader, num_epochs=10, lr=2e-5, device='cuda', model_name='model', patience=9):
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', patience=5, factor=0.5, verbose=True)
+
+    # Configure freezing and differential learning rates for fine-tuned model
+    if model_name == 'model':  # Fine-tuned model (gpt2-small)
+        # Freeze all GPT-2 layers except the last 2 blocks
+        if hasattr(model, 'gpt2') or hasattr(model, 'transformer'):
+            gpt2 = model.gpt2 if hasattr(model, 'gpt2') else model.transformer
+            for i, block in enumerate(gpt2.h):
+                if i < len(gpt2.h) - 2:  # Freeze blocks 0 to 9 (0-based indexing)
+                    for p in block.parameters():
+                        p.requires_grad = False
+                else:  # Unfreeze blocks 10 and 11
+                    for p in block.parameters():
+                        p.requires_grad = True
+        # Differential learning rates
+        head_lr = 1e-4
+        wd = 1e-2
+        groups = [
+            {'params': [p for p in
+                        (model.gpt2.parameters() if hasattr(model, 'gpt2') else model.transformer.parameters()) if
+                        p.requires_grad], 'lr': lr, 'weight_decay': wd},
+            {'params': model.cnn_projection.parameters(), 'lr': head_lr, 'weight_decay': wd},
+            {'params': model.fc.parameters(), 'lr': head_lr, 'weight_decay': wd},
+            {'params': model.cnn.parameters(), 'lr': head_lr, 'weight_decay': wd},
+        ]
+    else:  # Baseline model (randomly initialized, no freezing)
+        groups = [{'params': model.parameters(), 'lr': 1e-5, 'weight_decay': 1e-2}]
+
+    optimizer = optim.AdamW(groups)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', patience=5, factor=0.5)
+
+    # Validate labels
+    for X, y in train_loader:
+        if y.min() < 0 or y.max() >= 50:
+            raise ValueError(f"Invalid train labels: min={y.min()}, max={y.max()}")
 
     best_val_acc = 0
     epochs_no_improve = 0
@@ -52,6 +81,7 @@ def train_model(model, train_loader, val_loader, num_epochs=10, lr=2e-5, device=
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             epochs_no_improve = 0
+            os.makedirs('models', exist_ok=True)
             torch.save(model.state_dict(), f'models/best_{model_name}.pt')
             print(f'Best Model Updated: Acc={best_val_acc:.4f}')
             print(f'⎺' * 50)
@@ -84,10 +114,9 @@ if __name__ == '__main__':
     os.makedirs('models', exist_ok=True)
     num_epochs = 20
     train_model(model, train_loader, val_loader, num_epochs=num_epochs, lr=2e-5, device=device, model_name='model',
-                patience=500)
+                patience=9)
 
     # Train baseline model
     print("Start training baseline_model\n")
-    train_model(baseline_model, train_loader, val_loader, num_epochs=num_epochs, lr=2e-5, device=device,
-                model_name='baseline_model', patience=500)
-
+    train_model(baseline_model, train_loader, val_loader, num_epochs=num_epochs, lr=1e-5, device=device,
+                model_name='baseline_model', patience=9)
