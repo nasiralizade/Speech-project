@@ -19,10 +19,12 @@ class AudioClassifier(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2),
+            nn.Dropout(0.2),
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(2),
+            nn.Dropout(0.2),
         )
 
         # cnn_out shape: (batch, 128, 25, 10) → tokens = 25 time steps, 128×10 dims each
@@ -31,6 +33,7 @@ class AudioClassifier(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(self.gpt2_config.n_embd, 256),
             nn.ReLU(),
+            nn.Dropout(0.3),
             nn.Linear(256, num_classes)
         )
 

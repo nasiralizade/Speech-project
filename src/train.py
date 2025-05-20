@@ -113,11 +113,17 @@ if __name__ == '__main__':
 
     # Train fine-tuned model
     os.makedirs('models', exist_ok=True)
-    num_epochs = 50
+    num_epochs = 20
     train_model(model, train_loader, val_loader, num_epochs=num_epochs, lr=2e-5, device=device, model_name='model',
-                patience=15)
+                patience=20)
 
     # Train baseline model
     print("Start training baseline_model\n")
     train_model(baseline_model, train_loader, val_loader, num_epochs=num_epochs, lr=1e-5, device=device,
-                model_name='baseline_model', patience=15)
+                model_name='baseline_model', patience=20)
+
+    # just testing the gpt2-medium model, to see if it performs better
+    mode_medium = AudioClassifier(num_classes=50, gpt2_model='gpt2-medium').to(device)
+    print("Start training medium_model\n")
+    train_model(mode_medium, train_loader, val_loader, num_epochs=num_epochs, lr=2e-5, device=device,
+                model_name='medium_model', patience=20)
